@@ -77,7 +77,6 @@ var CommentBox = React.createClass({
     return (
       <div className="container-fluid">
       <h1>Comment System</h1>
-
       <CommentForm  onCommentSubmit={this.handleCommentSubmit} />
       <CommentList data={this.state.data} />
       </div>
