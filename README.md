@@ -1,3 +1,3 @@
 # Alucidisland
 
-## A Baller React Firebase App
+## React Firebase App
