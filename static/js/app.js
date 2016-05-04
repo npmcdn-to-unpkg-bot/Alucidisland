@@ -4,30 +4,119 @@ var firebaseUrl = "https://smsproject.firebaseio.com/";
 
 var converter = new Showdown.converter();
 
+var ref = new Firebase("https://smsproject.firebaseio.com");
 
-var Comment = React.createClass({
+var AppWrapper = React.createClass({
+  render: function(){
+    return(
+      <div className="container-fluid">
+      <h1>Welcome To My App</h1>
+      <RegistrationBox />
+      <CommentBox />
+      </div>
+    );
+  }
+});
+
+var RegistrationBox = React.createClass({
+  mixins: [ReactFireMixin],
+
+  handleRegistrationSubmit: function(registration) {
+
+    this.firebaseRefs["data"].push(registration);
+  },
+
+  getInitialState: function() {
+    return {
+      data :[]
+    };
+  },
+
+  componentWillMount: function() {
+
+    this.bindAsArray(new Firebase(firebaseUrl + "users"), "data");
+  },
+
   render: function() {
-    var rawMarkup = converter.makeHtml(this.props.children.toString());
     return (
-      <div className="comments col-sm-8">
-      <h2 className="commentAuthor">{this.props.author}</h2>
-      <span dangerouslySetInnerHTML={{__html: rawMarkup}} />
+      <div className="col-sm-6">
+      <h3>Registration System</h3>
+      <RegistrationForm onRegitstrationSubmit={this.handleRegistrationSubmit} />
       </div>
     );
   }
 });
 
 
-var CommentList = React.createClass({
-  render: function() {
-    var commentNodes = this.props.data.map(function (comment, index) {
-      return <Comment key={index} author={comment.author}>{comment.text}</Comment>;
-    });
+var RegistrationForm = React.createClass({
 
-    return <div className="commentList">{commentNodes}</div>;
+
+  handleSubmit: function(event) {
+    event.preventDefault();
+
+    var email = this.refs.email.value.trim();
+    var password = this.refs.password.value.trim();
+    this.props.onRegitstrationSubmit({email: email, password: password});
+    this.refs.email.value = '';
+    this.refs.password.value = '';
+
+    ref.createUser({
+      email    : email,
+      password : password
+    }, function(error, userData) {
+      if (error) {
+        console.log("Error creating user:", error);
+      } else {
+        console.log("Successfully created user account with uid:", userData.uid);
+      }
+    });
+  },
+
+  render: function() {
+    return (
+      <div className="">
+      <form className="" onSubmit={this.handleSubmit}>
+      <input className="" type="text" placeholder="email" ref="email" />
+      <input className="" type="password" placeholder="password" ref="password" />
+      <input className="btn btn-success" type="submit" value="Register" />
+      </form>
+      </div>
+    );
   }
 });
 
+
+
+var CommentBox = React.createClass({
+  mixins: [ReactFireMixin],
+
+  handleCommentSubmit: function(comment) {
+    // Here we push the update out to Firebase and let ReactFire update this.state.data
+    this.firebaseRefs["data"].push(comment);
+  },
+
+  getInitialState: function() {
+    return {
+      data: []
+    };
+  },
+
+  componentWillMount: function() {
+    // Here we bind the component to Firebase and it handles all data updates,
+    // no need to poll as in the React example.
+    this.bindAsArray(new Firebase(firebaseUrl + "comment"), "data");
+  },
+
+  render: function() {
+    return (
+      <div className="col-sm-12">
+      <h1>Comment System</h1>
+      <CommentForm  onCommentSubmit={this.handleCommentSubmit} />
+      <CommentList data={this.state.data} />
+      </div>
+    );
+  }
+});
 
 var CommentForm = React.createClass({
   handleSubmit: function(event) {
@@ -52,33 +141,23 @@ var CommentForm = React.createClass({
   }
 });
 
-
-var CommentBox = React.createClass({
-  mixins: [ReactFireMixin],
-
-  handleCommentSubmit: function(comment) {
-    // Here we push the update out to Firebase and let ReactFire update this.state.data
-    this.firebaseRefs["data"].push(comment);
-  },
-
-  getInitialState: function() {
-    return {
-      data: []
-    };
-  },
-
-  componentWillMount: function() {
-    // Here we bind the component to Firebase and it handles all data updates,
-    // no need to poll as in the React example.
-    this.bindAsArray(new Firebase(firebaseUrl + "commentBox"), "data");
-  },
-
+var CommentList = React.createClass({
   render: function() {
+    var commentNodes = this.props.data.map(function (comment, index) {
+      return <Comment key={index} author={comment.author}>{comment.text}</Comment>;
+    });
+
+    return <div className="commentList">{commentNodes}</div>;
+  }
+});
+
+var Comment = React.createClass({
+  render: function() {
+    var rawMarkup = converter.makeHtml(this.props.children.toString());
     return (
-      <div className="container-fluid">
-      <h1>Comment System</h1>
-      <CommentForm  onCommentSubmit={this.handleCommentSubmit} />
-      <CommentList data={this.state.data} />
+      <div className="comments col-sm-8">
+      <h2 className="commentAuthor">{this.props.author}</h2>
+      <span dangerouslySetInnerHTML={{__html: rawMarkup}} />
       </div>
     );
   }
@@ -87,6 +166,11 @@ var CommentBox = React.createClass({
 
 
 
+
+
+
+
+
 ReactDOM.render(
-  <CommentBox className="col-sm-12" />, docID
+  <AppWrapper className="col-sm-12" />, docID
 );
