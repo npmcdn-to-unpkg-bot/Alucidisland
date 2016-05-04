@@ -12,7 +12,67 @@ var AppWrapper = React.createClass({
       <div className="container-fluid">
       <h1>Welcome To My App</h1>
       <RegistrationBox />
+      <LoginBox />
       <CommentBox />
+      </div>
+    );
+  }
+});
+
+var LoginBox = React.createClass({
+  mixins: [ReactFireMixin],
+
+  handleLoginSubmit: function(registration) {
+    this.firebaseRefs["data"]
+  },
+
+  getInitialState: function() {
+    return {
+      data :[]
+    };
+  },
+
+  render: function() {
+    return (
+      <div className="col-sm-6">
+      <h3>Login System</h3>
+      <LoginForm onLoginSubmit={this.handleLoginSubmit} />
+      </div>
+    );
+  }
+});
+
+var LoginForm = React.createClass({
+
+  handleSubmit: function(event) {
+    event.preventDefault();
+
+    var email = this.refs.email.value.trim();
+    var password = this.refs.password.value.trim();
+    this.props.onLoginSubmit({email: email, password: password});
+    this.refs.email.value = '';
+    this.refs.password.value = '';
+
+    ref.authWithPassword({
+      email    : email,
+      password : password
+    }, function(error, authData) {
+      if (error) {
+        console.log("Login Failed!", error);
+      } else {
+        console.log("Authenticated successfully with payload:", authData);
+      }
+    });
+  },
+
+  render: function() {
+    return (
+      <div className="">
+      <form className="" onSubmit={this.handleSubmit}>
+      <input className="" type="text" placeholder="email" ref="email" />
+      <input className="" type="password" placeholder="password" ref="password" />
+      <input className="btn btn-primary" type="submit" value="Register" />
+      </form>
       </div>
     );
   }
@@ -23,18 +83,13 @@ var RegistrationBox = React.createClass({
 
   handleRegistrationSubmit: function(registration) {
 
-    this.firebaseRefs["data"].push(registration);
+    this.firebaseRefs["data"];
   },
 
   getInitialState: function() {
     return {
       data :[]
     };
-  },
-
-  componentWillMount: function() {
-
-    this.bindAsArray(new Firebase(firebaseUrl + "users"), "data");
   },
 
   render: function() {
@@ -47,9 +102,7 @@ var RegistrationBox = React.createClass({
   }
 });
 
-
 var RegistrationForm = React.createClass({
-
 
   handleSubmit: function(event) {
     event.preventDefault();
@@ -84,8 +137,6 @@ var RegistrationForm = React.createClass({
     );
   }
 });
-
-
 
 var CommentBox = React.createClass({
   mixins: [ReactFireMixin],
