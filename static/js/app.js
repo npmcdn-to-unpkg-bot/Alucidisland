@@ -71,7 +71,7 @@ var LoginForm = React.createClass({
       <form className="" onSubmit={this.handleSubmit}>
       <input className="" type="text" placeholder="email" ref="email" />
       <input className="" type="password" placeholder="password" ref="password" />
-      <input className="btn btn-primary" type="submit" value="Register" />
+      <input className="btn btn-primary" type="submit" value="Login" />
       </form>
       </div>
     );
@@ -213,14 +213,6 @@ var Comment = React.createClass({
     );
   }
 });
-
-
-
-
-
-
-
-
 
 ReactDOM.render(
   <AppWrapper className="col-sm-12" />, docID
