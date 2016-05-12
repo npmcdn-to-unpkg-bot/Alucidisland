@@ -203,12 +203,15 @@ var CommentList = React.createClass({
 });
 
 var Comment = React.createClass({
+
   render: function() {
     var rawMarkup = converter.makeHtml(this.props.children.toString());
     return (
       <div className="comments col-sm-8">
       <h2 className="commentAuthor">{this.props.author}</h2>
       <span dangerouslySetInnerHTML={{__html: rawMarkup}} />
+      <button className="btn btn-success glyphicon glyphicon-pencil" type="submit" name="button"></button>
+      <button onClick={this.handleDelete} className="btn btn-danger glyphicon glyphicon-remove" type="submit" name="button"></button>
       </div>
     );
   }
