@@ -139,84 +139,243 @@ var RegistrationForm = React.createClass({
 });
 
 var CommentBox = React.createClass({
-  mixins: [ReactFireMixin],
 
-  handleCommentSubmit: function(comment) {
-    // Here we push the update out to Firebase and let ReactFire update this.state.data
-    this.firebaseRefs["data"].push(comment);
+  getInitialState: function(){
+    return{
+      text: '',
+      isEdit: 0,
+      comments: []
+    }
   },
 
-  getInitialState: function() {
-    return {
-      data: []
-    };
+  componentWillMount: function(){
+    this.firebaseRef = new Firebase ('https://smsproject.firebaseio.com/comments/')
+    var that = this;
+    this.firebaseRef.once("value", function(snapshot){
+      var comments = [];
+
+      snapshot.forEach(function(data){
+        var comment = {
+          id: data.val().id,
+          text: data.val().text
+        }
+        comments.push(comment);
+        that.setState({comments: comments});
+      })
+    })
   },
 
-  componentWillMount: function() {
-    // Here we bind the component to Firebase and it handles all data updates,
-    // no need to poll as in the React example.
-    this.bindAsArray(new Firebase(firebaseUrl + "comment"), "data");
-  },
-
-  render: function() {
-    return (
-      <div className="col-sm-12">
+  render: function(){
+    return(
+      <div>
       <h1>Comment System</h1>
-      <CommentForm  onCommentSubmit={this.handleCommentSubmit} />
-      <CommentList data={this.state.data} />
+      <CommentForm
+      {...this.state}
+      changeText={this.handleChangeText}
+      onCommentUpdate={this.handleCommentUpdate}
+      onCommentAdd={this.handleCommentAdd} />
+      <CommentList
+      {...this.state}
+      editComment={this.handleCommentEdit}
+      deleteComment={this.handleCommentDelete} />
       </div>
-    );
+    )
+  },
+
+  handleCommentAdd: function(text){
+    var newComment = {
+      id: this.state.comments.length + 1,
+      text: text
+    }
+
+    this.firebaseRef.push(newComment);
+    this.setState({comments: this.state.comments.concat(newComment)});
+  },
+
+  handleCommentDelete: function(comment){
+    var comments = this.state.comments
+
+    for(var i = 0; i < comments.length; i++){
+      if(comments[i].id == comment.id){
+        comments.splice(i, 1);
+      }
+    }
+
+    this.setState({comments: comments});
+  },
+
+  handleCommentUpdate: function(comment){
+    var comments = this.state.comments
+
+    for(var i = 0; i < comments.length; i++){
+      if(comments[i].id == comment.id){
+        comments.splice(i, 1);
+      }
+    }
+    comments.update(comment);
+    this.setState({comments: comments});
+  },
+
+  handleCommentEdit: function(comment){
+    this.setState({
+      text: comment.text,
+      isEdit: comment.id
+    });
+  },
+
+  handleChangeText: function(text){
+    this.setState({text: text});
   }
 });
 
 var CommentForm = React.createClass({
-  handleSubmit: function(event) {
-    event.preventDefault();
-    var author = this.refs.author.value.trim();
-    var text = this.refs.text.value.trim();
-    this.props.onCommentSubmit({author: author, text: text});
-    this.refs.author.value = '';
-    this.refs.text.value = '';
-  },
-
-  render: function() {
-    return (
-      <div className="form-group col-sm-12">
-      <form className="form-group col-sm-12" onSubmit={this.handleSubmit}>
-      <input className="form-control col-sm-5" type="text" placeholder="Who are you?" ref="author" />
-      <input className="form-control col-sm-5" type="text" placeholder="Got something to say?" ref="text" />
-      <input className="form-control btn btn-primary col-sm-10" type="submit" value="Post" />
+  render: function(){
+    return(
+      <div>
+      <form>
+      <div className="form-group">
+      <p>
+      <label>Comment Text</label>
+      <br />
+      <input className="form-control" type="text" value={this.props.text} ref="text" onChange={this.onChange} />
+      </p>
+      <button onClick={this.onSubmit} className="btn btn-success" type="button"> Submit </button>
+      </div>
       </form>
       </div>
-    );
+    )
+  },
+
+  onChange: function(e){
+    this.props.changeText(e.target.value)
+  },
+
+  onSubmit: function(e){
+    e.preventDefault();
+    var text = this.refs.text.value.trim();
+
+    if(!text){
+      alert("Please Enter a comment");
+      return;
+    }
+
+    if(this.props.isEdit){
+      var updatedComment = {
+        id: this.props.isEdit,
+        text: text
+      }
+      this.props.onCommentUpdate(updatedComment);
+    } else {
+      this.props.onCommentAdd(text);
+    }
+
+    this.refs.text.value = '';
   }
 });
 
 var CommentList = React.createClass({
-  render: function() {
-    var commentNodes = this.props.data.map(function (comment, index) {
-      return <Comment key={index} author={comment.author}>{comment.text}</Comment>;
-    });
+  render: function(){
+    return(
+      <ul className="list-group">
+      {
+        this.props.comments.map(comment => {
+          return <li className="list-group-item" comment={comment} key={comment.id}>
+          <button onClick={this.onDelete.bind(this, comment)} className="btn btn-danger glyphicon glyphicon-remove" type="button"></button> <button onClick={this.editComment.bind(this, comment)} className="btn btn-warning glyphicon glyphicon-pencil" type="button"> </button> {comment.text}</li>
+        })
+      }
+      </ul>
+    )
+  },
 
-    return <div className="commentList">{commentNodes}</div>;
+  onDelete: function(comment){
+    this.props.deleteComment(comment);
+  },
+  editComment: function(comment){
+    this.props.editComment(comment);
   }
-});
 
-var Comment = React.createClass({
-
-  render: function() {
-    var rawMarkup = converter.makeHtml(this.props.children.toString());
-    return (
-      <div className="comments col-sm-8">
-      <h2 className="commentAuthor">{this.props.author}</h2>
-      <span dangerouslySetInnerHTML={{__html: rawMarkup}} />
-      <button className="btn btn-success glyphicon glyphicon-pencil" type="submit" name="button"></button>
-      <button onClick={this.handleDelete} className="btn btn-danger glyphicon glyphicon-remove" type="submit" name="button"></button>
-      </div>
-    );
-  }
 });
 
 ReactDOM.render(
   <AppWrapper className="col-sm-12" />, docID
 );
+
+
+// var CommentBox = React.createClass({
+//   mixins: [ReactFireMixin],
+//
+//   handleCommentSubmit: function(comment) {
+//     // Here we push the update out to Firebase and let ReactFire update this.state.data
+//     this.firebaseRefs["data"].push(comment);
+//   },
+//
+//   getInitialState: function() {
+//     return {
+//       data: []
+//     };
+//   },
+//
+//   componentWillMount: function() {
+//     // Here we bind the component to Firebase and it handles all data updates,
+//     // no need to poll as in the React example.
+//     this.bindAsArray(new Firebase(firebaseUrl + "comment"), "data");
+//   },
+//
+//   render: function() {
+//     return (
+//       <div className="col-sm-12">
+//       <h1>Comment System</h1>
+//       <CommentForm  onCommentSubmit={this.handleCommentSubmit} />
+//       <CommentList data={this.state.data} />
+//       </div>
+//     );
+//   }
+// });
+//
+// var CommentForm = React.createClass({
+//   handleSubmit: function(event) {
+//     event.preventDefault();
+//     var author = this.refs.author.value.trim();
+//     var text = this.refs.text.value.trim();
+//     this.props.onCommentSubmit({author: author, text: text});
+//     this.refs.author.value = '';
+//     this.refs.text.value = '';
+//   },
+//
+//   render: function() {
+//     return (
+//       <div className="form-group col-sm-12">
+//       <form className="form-group col-sm-12" onSubmit={this.handleSubmit}>
+//       <input className="form-control col-sm-5" type="text" placeholder="Who are you?" ref="author" />
+//       <input className="form-control col-sm-5" type="text" placeholder="Got something to say?" ref="text" />
+//       <input className="form-control btn btn-primary col-sm-10" type="submit" value="Post" />
+//       </form>
+//       </div>
+//     );
+//   }
+// });
+//
+// var CommentList = React.createClass({
+//   render: function() {
+//     var commentNodes = this.props.data.map(function (comment, index) {
+//       return <Comment key={index} author={comment.author}>{comment.text}</Comment>;
+//     });
+//
+//     return <div className="commentList">{commentNodes}</div>;
+//   }
+// });
+//
+// var Comment = React.createClass({
+//
+//   render: function() {
+//     var rawMarkup = converter.makeHtml(this.props.children.toString());
+//     return (
+//       <div className="comments col-sm-8">
+//       <h2 className="commentAuthor">{this.props.author}</h2>
+//       <span dangerouslySetInnerHTML={{__html: rawMarkup}} />
+//       <button className="btn btn-success glyphicon glyphicon-pencil" type="submit" name="button"></button>
+//       <button onClick={this.handleDelete} className="btn btn-danger glyphicon glyphicon-remove" type="submit" name="button"></button>
+//       </div>
+//     );
+//   }
+// });
