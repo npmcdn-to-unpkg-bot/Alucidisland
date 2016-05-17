@@ -139,10 +139,11 @@ var RegistrationForm = React.createClass({
 });
 
 var CommentBox = React.createClass({
+  mixins: [ReactFireMixin],
 
   getInitialState: function(){
     return{
-      text: '',
+      comment: {},
       isEdit: 0,
       comments: []
     }
@@ -150,19 +151,7 @@ var CommentBox = React.createClass({
 
   componentWillMount: function(){
     this.firebaseRef = new Firebase ('https://smsproject.firebaseio.com/comments/')
-    var that = this;
-    this.firebaseRef.once("value", function(snapshot){
-      var comments = [];
-
-      snapshot.forEach(function(data){
-        var comment = {
-          id: data.val().id,
-          text: data.val().text
-        }
-        comments.push(comment);
-        that.setState({comments: comments});
-      })
-    })
+    this.bindAsArray(this.firebaseRef, 'comments')
   },
 
   render: function(){
@@ -189,42 +178,33 @@ var CommentBox = React.createClass({
     }
 
     this.firebaseRef.push(newComment);
-    this.setState({comments: this.state.comments.concat(newComment)});
+    this.setState({comment: {}, comments: this.state.comments.concat(newComment)});
   },
 
   handleCommentDelete: function(comment){
     var comments = this.state.comments
-
-    for(var i = 0; i < comments.length; i++){
-      if(comments[i].id == comment.id){
-        comments.splice(i, 1);
-      }
-    }
-
+    console.log('COMMENT:',comment)
+    this.firebaseRef.child(comment['.key']).remove()
     this.setState({comments: comments});
   },
 
   handleCommentUpdate: function(comment){
     var comments = this.state.comments
+    this.firebaseRef.child(comment['.key']).update({text: comment.text})
+    this.setState({comment: {}, comments: comments});
 
-    for(var i = 0; i < comments.length; i++){
-      if(comments[i].id == comment.id){
-        comments.splice(i, 1);
-      }
-    }
-    comments.update(comment);
-    this.setState({comments: comments});
   },
 
   handleCommentEdit: function(comment){
     this.setState({
-      text: comment.text,
-      isEdit: comment.id
+      comment: comment,
+      isEdit: true
     });
   },
 
   handleChangeText: function(text){
-    this.setState({text: text});
+    this.state.comment.text = text
+    this.setState({comment: this.state.comment});
   }
 });
 
@@ -232,12 +212,12 @@ var CommentForm = React.createClass({
   render: function(){
     return(
       <div>
-      <form>
+      <form onSubmit={this.onSubmit}>
       <div className="form-group">
       <p>
       <label>Comment Text</label>
       <br />
-      <input className="form-control" type="text" value={this.props.text} ref="text" onChange={this.onChange} />
+      <input className="form-control" type="text" value={this.props.comment.text} ref="text" onChange={this.onChange} />
       </p>
       <button onClick={this.onSubmit} className="btn btn-success" type="button"> Submit </button>
       </div>
@@ -259,14 +239,12 @@ var CommentForm = React.createClass({
       return;
     }
 
+    this.props.comment.text = text;
+    console.log(this.props.isEdit);
     if(this.props.isEdit){
-      var updatedComment = {
-        id: this.props.isEdit,
-        text: text
-      }
-      this.props.onCommentUpdate(updatedComment);
+      this.props.onCommentUpdate(this.props.comment);
     } else {
-      this.props.onCommentAdd(text);
+      this.props.onCommentAdd(this.props.comment.text);
     }
 
     this.refs.text.value = '';
@@ -301,7 +279,6 @@ ReactDOM.render(
 );
 
 
-// var CommentBox = React.createClass({
 //   mixins: [ReactFireMixin],
 //
 //   handleCommentSubmit: function(comment) {
