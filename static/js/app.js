@@ -229,6 +229,7 @@ var RecipeDisplay = React.createClass({
     };
   },
 
+
   componentDidMount: function() {
 
     this.serverRequest = $.get(this.props.source, function (data) {
