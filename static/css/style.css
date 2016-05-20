@@ -5,9 +5,21 @@ body{
 }
 
 input{
-  margin:5px 0 0 0;
+  margin:5px 5px 0 0;
 }
 
 .comments{
   margin:0 auto;
+}
+
+.avatar{
+  float: left;
+  height: auto;
+  margin-right: 20px;
+  width: 50px;
+}
+
+.logout{
+  float: right;
+  margin-top: 24px;
 }
