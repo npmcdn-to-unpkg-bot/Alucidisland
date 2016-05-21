@@ -5,16 +5,35 @@
   "main": "app.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "start": "parallelshell 'nodemon server.js' 'npm run watch:js'",
+    "watch:js": "watchify -t babelify --extension=.jsx src/client/index.js -o static/js/app.js --verbose",
+    "build:js": "browserify -t babelify --extension=.jsx src/client/index.js -o static/js/app.js --verbose"
   },
   "author": "Alucidisland",
   "license": "ISC",
   "dependencies": {
-    "express": "^4.13.4"
+    "express": "^4.13.4",
+    "react": "^15.1.0",
+    "react-dom": "^15.1.0",
+    "reactfire": "^0.7.0"
   },
   "devDependencies": {
+    "babel-cli": "^6.9.0",
+    "babel-eslint": "^6.0.4",
+    "babel-preset-es2015": "^6.9.0",
+    "babel-preset-react": "^6.5.0",
+    "babel-preset-stage-2": "^6.5.0",
+    "babelify": "^7.3.0",
+    "browserify": "^13.0.1",
+    "eslint": "^2.10.2",
+    "eslint-config-airbnb": "^9.0.1",
+    "eslint-plugin-import": "^1.8.0",
+    "eslint-plugin-jsx-a11y": "^1.2.2",
+    "eslint-plugin-react": "^5.1.1",
     "gulp": "^3.9.1",
     "gulp-nodemon": "^2.0.7",
-    "nodemon": "^1.9.2"
+    "nodemon": "^1.9.2",
+    "parallelshell": "^2.0.0",
+    "watchify": "^3.7.0"
   }
 }

@@ -1,0 +1,16 @@
+{
+  "execMap":{
+    "js": "babel-node",
+    "jsx": "babel-node"
+  },
+  "ext": "js json jsx hbs",
+  "ignore": [
+    ".git/",
+    "node_modules/"
+  ],
+  "restartable": "rs",
+  "verbose": false,
+  "watch": [
+    "js"
+  ]
+}
