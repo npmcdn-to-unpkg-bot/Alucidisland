@@ -1,3 +1,5 @@
+import React form 'react';
+
 var CommentForm = React.createClass({
   getInitialState() {
     return {

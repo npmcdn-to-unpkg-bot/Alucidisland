@@ -1,3 +1,6 @@
+import Firebase from 'firebase';
+import ReactFireMixin from 'reactfire';
+
 var Comment = React.createClass({
   mixins: [ReactFireMixin],
 

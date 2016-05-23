@@ -14,7 +14,6 @@ let RecipeDisplay = React.createClass({
       this.setState({
         title: data.Title,
         instructions: data.Instructions,
-        image: data.Photo
       });
     }.bind(this));
   },
