@@ -45,9 +45,7 @@ var AppWrapper = React.createClass({
       )}
 
       <h1>Welcome To My App</h1>
-
-      <RecipeDisplay source="https://api2.bigoven.com/recipes/random?api_key=dvx0k0O07jpZ1583Ba0gsaIeGlo3b1jY"/>
-
+      <RecipeSearch />
       {!this.state.authenticated && (
         <div className="row jumbotron">
 
@@ -220,25 +218,60 @@ var RegistrationForm = React.createClass({
   },
 });
 
-var RecipeDisplay = React.createClass({
+var RecipeSearch = React.createClass({
 
+  getInitialState: function(){
+    return{
+      keyword: ''
+    };
+  },
+
+  render: function(){
+    return (
+      <div>
+      <form onSubmit={this.handleSubmit}>
+      <input className="" type="search" name="name" placeholder="Search" ref="keyword"/>
+      <input className="btn btn-info" type="submit" name="name" value="Search"/>
+      </form>
+      <RecipeDisplay source={"http://api2.bigoven.com/recipes?pg=1&rpp=5&any_kw="+this.state.keyword+"&api_key=dvx0k0O07jpZ1583Ba0gsaIeGlo3b1jY"}/>
+      </div>
+    )
+  },
+
+  handleSubmit: function(e){
+    e.preventDefault(e)
+    console.log(this.refs.keyword.value)
+    this.setState({
+      keyword: this.refs.keyword.value
+    })
+
+  }
+
+})
+
+var RecipeDisplay = React.createClass({
+  lastUrl: '',
   getInitialState: function() {
     return {
-      title: '',
-      instructions: ''
+      results: []
     };
   },
 
 
-  componentDidMount: function() {
-
+  getRecipes: function() {
     this.serverRequest = $.get(this.props.source, function (data) {
+      console.log(data);
       this.setState({
-        title: data.Title,
-        instructions: data.Instructions,
-        image: data.Photo
+        results: data.Results
       });
     }.bind(this));
+  },
+
+  componentDidUpdate() {
+    if(this.lastUrl != this.props.source) {
+      this.getRecipes();
+      this.lastUrl = this.props.source;
+    }
   },
 
   componentWillUnmount: function() {
@@ -248,14 +281,56 @@ var RecipeDisplay = React.createClass({
   render: function() {
     return (
       <div>
-      {this.state.image}
-      <h3>{this.state.title}</h3>
-      <p>{this.state.instructions}</p>
-      </div>
-    );
+      {this.state.results.map( function(recipe, i) {
+        return (
+          <div key={i}>
+            <h3>{recipe.Title}</h3>
+            <RecipeInstructions source={"http://api2.bigoven.com/recipe/"+ recipe.RecipeID + "?api_key=dvx0k0O07jpZ1583Ba0gsaIeGlo3b1jY"}/>
+          </div>
+        );
+      })}
+    </div>
+  )
   }
 });
 
+var RecipeInstructions = React.createClass({
+  lastUrl: '',
+  getInitialState: function() {
+    return {
+      result:{},
+    };
+  },
+
+
+  getInstructions: function() {
+    this.serverRequest = $.get(this.props.source, function (data) {
+      console.log(data);
+      this.setState({
+        result: data
+      });
+    }.bind(this));
+  },
+
+  componentDidMount() {
+    if(this.lastUrl != this.props.source) {
+      this.getInstructions();
+      this.lastUrl = this.props.source;
+    }
+  },
+
+  componentWillUnmount: function() {
+    this.serverRequest.abort();
+  },
+
+  render: function() {
+    return (
+      <div>
+      {this.state.result.Instructions}
+    </div>
+  )
+  }
+});
 
 var CommentBox = React.createClass({
   mixins: [ReactFireMixin],
