@@ -1,4 +1,9 @@
+import React from 'react';
+
 import RecipeDisplay from './RecipeDisplay';
+import LoginForm from './LoginForm';
+import RegistrationForm from './RegistrationForm';
+import CommentBox from './CommentBox';
 
 const AppWrapper = React.createClass({
   mixins: [ReactFireMixin],

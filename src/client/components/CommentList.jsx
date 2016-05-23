@@ -1,3 +1,5 @@
+import React from 'react';
+
 var CommentList = React.createClass({
   render() {
     return (

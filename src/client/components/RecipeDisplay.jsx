@@ -1,3 +1,5 @@
+import React from 'react';
+
 let RecipeDisplay = React.createClass({
 
   getInitialState: function() {
