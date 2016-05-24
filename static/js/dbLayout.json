@@ -1,0 +1,23 @@
+app
+{
+  comments
+  {
+    recipeID
+    {
+      commentID
+      {
+        text: ''
+        user: ''
+      }
+    }
+  }
+  users
+  {
+    UID
+    {
+      avatar:''
+      email: ''
+      uid: ''
+    }
+  }
+}
