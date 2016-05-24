@@ -23,3 +23,13 @@ input{
   float: right;
   margin-top: 24px;
 }
+
+.panel{
+  padding: 0 20px 20px ;
+}
+
+img{
+  width:250px;
+  height:250px;
+  margin: 10px 20px 10px 0;
+}

@@ -29,7 +29,7 @@ var AppWrapper = React.createClass({
 
 
   render() {
-    console.log(this.state.user);
+
     return (
       <div className="container-fluid">
       {this.state.authenticated && (
@@ -45,16 +45,16 @@ var AppWrapper = React.createClass({
       )}
 
       <h1>Welcome To My App</h1>
-      <RecipeSearch />
+      <RecipeSearch authenticated={this.state.authenticated} />
+
       {!this.state.authenticated && (
         <div className="row jumbotron">
-
         <LoginForm addUser={this.addUser} login={this.login} />
         <RegistrationForm addUser={this.addUser} />
         </div>
       )}
 
-      <CommentBox authenticated={this.state.authenticated} user={this.state.user} />
+
       </div>
     );
   },
@@ -228,12 +228,12 @@ var RecipeSearch = React.createClass({
 
   render: function(){
     return (
-      <div>
-      <form onSubmit={this.handleSubmit}>
-      <input className="" type="search" name="name" placeholder="Search" ref="keyword"/>
-      <input className="btn btn-info" type="submit" name="name" value="Search"/>
+      <div className="">
+      <form className="form-group form-inline" onSubmit={this.handleSubmit}>
+      <input className="form-control" type="search" name="name" placeholder="Search" ref="keyword"/>
+      <input className="form-control btn btn-info" type="submit" name="name" value="Search"/>
       </form>
-      <RecipeDisplay source={"http://api2.bigoven.com/recipes?pg=1&rpp=5&any_kw="+this.state.keyword+"&api_key=dvx0k0O07jpZ1583Ba0gsaIeGlo3b1jY"}/>
+      <RecipeDisplay source={"http://api2.bigoven.com/recipes?pg=1&rpp=5&any_kw="+this.state.keyword+"&api_key=dvx0k0O07jpZ1583Ba0gsaIeGlo3b1jY"} authenticated={this.props.authenticated}/>
       </div>
     )
   },
@@ -283,14 +283,16 @@ var RecipeDisplay = React.createClass({
       <div>
       {this.state.results.map( function(recipe, i) {
         return (
-          <div key={i}>
-            <h3>{recipe.Title}</h3>
-            <RecipeInstructions source={"http://api2.bigoven.com/recipe/"+ recipe.RecipeID + "?api_key=dvx0k0O07jpZ1583Ba0gsaIeGlo3b1jY"}/>
+          <div className="panel panel-default" key={i}>
+          <h3>{recipe.Title}</h3>
+          <img className="pull-left" src={recipe.PhotoUrl} alt="Photo of Food" />
+          <RecipeInstructions className="pull-right" source={"http://api2.bigoven.com/recipe/"+ recipe.RecipeID + "?api_key=dvx0k0O07jpZ1583Ba0gsaIeGlo3b1jY"} authenticated={this.props.authenticated}/>
+          <i className="clearfix"></i>
           </div>
         );
-      })}
-    </div>
-  )
+      }.bind(this))}
+      </div>
+    )
   }
 });
 
@@ -312,6 +314,13 @@ var RecipeInstructions = React.createClass({
     }.bind(this));
   },
 
+  componentDidUpdate() {
+    if(this.lastUrl != this.props.source) {
+      this.getInstructions();
+      this.lastUrl = this.props.source;
+    }
+  },
+
   componentDidMount() {
     if(this.lastUrl != this.props.source) {
       this.getInstructions();
@@ -327,27 +336,40 @@ var RecipeInstructions = React.createClass({
     return (
       <div>
       {this.state.result.Instructions}
-    </div>
-  )
+      <CommentBox authenticated={this.props.authenticated} user={this.props.user} recipe={this.state.result.RecipeID} />
+      </div>
+    )
   }
 });
 
 var CommentBox = React.createClass({
   mixins: [ReactFireMixin],
-
+  commentRef: null,
+  recipe: 0,
   getInitialState: function(){
     return {
       comments: [],
+      user: {}
     };
   },
 
   componentWillMount: function(){
-    var rootRef = new Firebase('https://smsproject.firebaseio.com');
-
-    var commentsRef = rootRef.child('comments');
-    this.bindAsArray(commentsRef, 'comments');
+    this.firebaseRef = new Firebase("https://smsproject.firebaseio.com");
+    var authData = this.firebaseRef.getAuth();
+    this.setState({user: authData});
   },
-
+  componentDidUpdate: function() {
+    var rootRef = new Firebase('https://smsproject.firebaseio.com');
+    if(this.props.recipe && this.recipe != this.props.recipe) {
+      console.log('prop',this.props.recipe)
+      this.commentsRef = rootRef.child('comments').child(this.props.recipe);
+      if(this.recipe != 0) {
+        this.unbind("comments");
+      }
+      this.bindAsArray(this.commentsRef, 'comments');
+      this.recipe = this.props.recipe
+    }
+  },
   render: function(){
     var comments = this.state.comments;
 
@@ -364,22 +386,23 @@ var CommentBox = React.createClass({
       comments={this.state.comments}
       onCommentDelete={this.handleCommentDelete}
       onCommentUpdate={this.handleCommentUpdate}
-      user={this.props.user}
+      user={this.state.user}
       />
       </div>
     );
   },
 
   handleCommentAdd(text) {
-    this.firebaseRefs['comments'].push({ text: text, user: this.props.user.uid });
+    console.log(this);
+    this.commentsRef.push({ text: text, user: this.state.user.uid });
   },
 
   handleCommentUpdate(key, text) {
-    this.firebaseRefs['comments'].child(key).update({ text: text });
+    this.commentsRef.child(key).update({ text: text });
   },
 
   handleCommentDelete(key) {
-    this.firebaseRefs['comments'].child(key).remove();
+    this.commentsRef.child(key).remove();
   },
 });
 
@@ -470,6 +493,7 @@ var Comment = React.createClass({
 
   render() {
     var comment = this.props.comment;
+    console.log('comment',comment)
 
     if (!this.state.user || !this.props.user) { return null; }
 
@@ -557,8 +581,9 @@ var Comment = React.createClass({
   toggleEdit() {
     this.setState({ editing: !this.state.editing });
   }
+
 });
 
 ReactDOM.render(
-  <AppWrapper className="col-sm-12" />, docID
+  <AppWrapper />, document.getElementById('app')
 );
