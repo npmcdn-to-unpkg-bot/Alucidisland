@@ -44,9 +44,9 @@ var AppWrapper = React.createClass({
         </a>
       )}
 
-      <h1>Welcome To My App</h1>
+      <h1>MothaCookinRecipes</h1>
       <RecipeSearch authenticated={this.state.authenticated} />
-
+      <RecipeBox authenticated={this.state.authenticated} />
       {!this.state.authenticated && (
         <div className="row jumbotron">
         <LoginForm addUser={this.addUser} login={this.login} />
@@ -228,19 +228,20 @@ var RecipeSearch = React.createClass({
 
   render: function(){
     return (
-      <div className="">
+      <div className="well">
+      <h2 className="">Search Something You're Craving.</h2>
       <form className="form-group form-inline" onSubmit={this.handleSubmit}>
       <input className="form-control" type="search" name="name" placeholder="Search" ref="keyword"/>
       <input className="form-control btn btn-info" type="submit" name="name" value="Search"/>
       </form>
-      <RecipeDisplay source={"http://api2.bigoven.com/recipes?pg=1&rpp=5&any_kw="+this.state.keyword+"&api_key=dvx0k0O07jpZ1583Ba0gsaIeGlo3b1jY"} authenticated={this.props.authenticated}/>
+      <RecipeDisplay source={"https://api2.bigoven.com/recipes?pg=1&rpp=5&any_kw="+this.state.keyword+"&api_key=dvx0k0O07jpZ1583Ba0gsaIeGlo3b1jY"} authenticated={this.props.authenticated}/>
+      <i className="clearfix"></i>
       </div>
     )
   },
 
   handleSubmit: function(e){
     e.preventDefault(e)
-    console.log(this.refs.keyword.value)
     this.setState({
       keyword: this.refs.keyword.value
     })
@@ -286,7 +287,7 @@ var RecipeDisplay = React.createClass({
           <div className="panel panel-default" key={i}>
           <h3>{recipe.Title}</h3>
           <img className="pull-left" src={recipe.PhotoUrl} alt="Photo of Food" />
-          <RecipeInstructions className="pull-right" source={"http://api2.bigoven.com/recipe/"+ recipe.RecipeID + "?api_key=dvx0k0O07jpZ1583Ba0gsaIeGlo3b1jY"} authenticated={this.props.authenticated}/>
+          <RecipeInstructions className="pull-right" source={"https://api2.bigoven.com/recipe/"+ recipe.RecipeID + "?api_key=dvx0k0O07jpZ1583Ba0gsaIeGlo3b1jY"} authenticated={this.props.authenticated}/>
           <i className="clearfix"></i>
           </div>
         );
@@ -342,6 +343,241 @@ var RecipeInstructions = React.createClass({
   }
 });
 
+var RecipeBox = React.createClass({
+  mixins: [ReactFireMixin],
+  commentRef: null,
+  getInitialState: function(){
+    return {
+      recipes: [],
+      user: {}
+    };
+  },
+
+  componentWillMount: function(){
+    this.firebaseRef = new Firebase("https://smsproject.firebaseio.com");
+    var authData = this.firebaseRef.getAuth();
+    this.setState({user: authData});
+    var rootRef = new Firebase('https://smsproject.firebaseio.com');
+    this.recipesRef = rootRef.child('recipes');
+    this.bindAsArray(this.recipesRef, 'recipes');
+  },
+  componentDidUpdate: function() {
+
+  },
+  render: function(){
+    var recipes = this.state.recipes;
+
+    return (
+      <div>
+      <h1>Recipe System</h1>
+
+
+    <RecipeForm onRecipeAdd={this.handleRecipeAdd} />
+       <p>MothaCookinRecipes</p>
+
+
+      <RecipeList
+      recipes={this.state.recipes}
+      onRecipeDelete={this.handleRecipeDelete}
+      onRecipeUpdate={this.handleRecipeUpdate}
+      user={this.state.user}
+      />
+      </div>
+    );
+  },
+
+  handleRecipeAdd(text) {
+    console.log(this);
+    this.recipesRef.push({ text: text, user: this.state.user.uid });
+  },
+
+  handleRecipeUpdate(key, text) {
+    this.recipesRef.child(key).update({ text: text });
+  },
+
+  handleRecipeDelete(key) {
+    this.recipesRef.child(key).remove();
+  },
+});
+
+var RecipeForm = React.createClass({
+  getInitialState() {
+    return {
+      text: "",
+    };
+  },
+
+  render: function() {
+    var text = this.state.text;
+
+    return (
+      <div>
+      <form onSubmit={this.handleSubmit}>
+      <div className="form-group">
+      <label>Recipe Text</label>
+      <input
+      className="form-control"
+      onChange={e => this.onTextChange(e.target.value)}
+      type="text"
+      value={text}
+      />
+      </div>
+
+      <div className="form-group">
+      <button
+      className="btn btn-success form-control"
+      onClick={this.handleSubmit}
+      type="submit"
+      >
+      Submit
+      </button>
+      </div>
+      </form>
+      </div>
+    )
+  },
+
+  handleSubmit(event) {
+    event.preventDefault();
+
+    var text = this.state.text;
+    if (text && text.trim().length !== 0) {
+      this.props.onRecipeAdd(text.trim());
+    }
+  },
+
+  onTextChange(text) {
+    this.setState({ text: text });
+  }
+});
+
+var RecipeList = React.createClass({
+  render() {
+    return (
+      <ul className="list-group">
+      {this.props.recipes.map(recipe => {
+        return <Recipe
+        recipe={recipe}
+        onRecipeDelete={this.props.onRecipeDelete}
+        onRecipeUpdate={this.props.onRecipeUpdate}
+        key={recipe['.key']}
+        user={this.props.user}
+        />;
+      })}
+      </ul>
+    )
+  }
+});
+
+var Recipe = React.createClass({
+  mixins: [ReactFireMixin],
+
+  getInitialState() {
+    return {
+      editing: false,
+      text: this.props.recipe.text || "",
+      user: null,
+    };
+  },
+
+  componentDidMount() {
+    var userRef = new Firebase(`https://smsproject.firebaseio.com/users/${this.props.recipe.user}`);
+    this.bindAsObject(userRef, 'user')
+  },
+
+  render() {
+    var recipe = this.props.recipe;
+    console.log('recipe',recipe)
+
+    if (!this.state.user || !this.props.user) { return null; }
+
+    if (this.state.editing) {
+      return (
+        <li className="list-group-item well">
+        <a href="#" className='pull-right' onClick={this.toggleEdit} role="button">
+        <i className="glyphicon glyphicon-remove"></i>
+        </a>
+
+        <form onSubmit={this.handleSubmit}>
+        <div className="form-group">
+        <label className="control-label">Editing Recipe</label>
+        <input
+        className="form-control"
+        onChange={e => this.onTextChange(e.target.value)}
+        type="text"
+        value={this.state.text}
+        />
+        <button
+        className="btn btn-success form-control"
+        onClick={this.handleSubmit}
+        type="submit"
+        >
+        Update
+        </button>
+        </div>
+        </form>
+        </li>
+      )
+    }
+
+    return (
+      <li className="list-group-item well">
+      {this.props.user.uid === this.state.user.uid
+        ? (
+          <div className="btn-group pull-right" role="group" aria-label="Recipe Options">
+          <button
+          className="btn btn-sm btn-info"
+          onClick={this.toggleEdit}
+          type="button"
+          >
+          <i className="glyphicon glyphicon-pencil"></i>
+          &nbsp;
+          Edit
+          </button>
+
+          <button
+          className="btn btn-sm btn-danger"
+          onClick={this.props.onRecipeDelete.bind(null, recipe['.key'])}
+          type="button"
+          >
+          <i className="glyphicon glyphicon-trash"></i>
+          &nbsp;
+          Delete
+          </button>
+          </div>
+        )
+        : null
+      }
+
+      <img src={this.state.user.avatar} className='avatar' />
+
+      <p><strong>{this.state.user.email} wrote:</strong></p>
+
+      <div dangerouslySetInnerHTML={{ __html: converter.makeHtml(recipe.text) }} style={{ paddingRight: '155px' }} />
+      </li>
+    );
+  },
+
+  handleSubmit(e) {
+    e.preventDefault();
+
+    var text = this.state.text;
+    if (text && text.trim().length !== 0) {
+      this.props.onRecipeUpdate(this.props.recipe['.key'], text.trim());
+      this.setState({ editing: false });
+    }
+  },
+
+  onTextChange(text) {
+    this.setState({ text: text });
+  },
+
+  toggleEdit() {
+    this.setState({ editing: !this.state.editing });
+  }
+
+});
+
 var CommentBox = React.createClass({
   mixins: [ReactFireMixin],
   commentRef: null,
@@ -375,7 +611,7 @@ var CommentBox = React.createClass({
 
     return (
       <div>
-      <h1>Comment System</h1>
+      <h1>Hows it Taste?</h1>
 
       {this.props.authenticated
         ? <CommentForm onCommentAdd={this.handleCommentAdd} />
